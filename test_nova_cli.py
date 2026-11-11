@@ -42,6 +42,19 @@ class NovaCliTests(unittest.TestCase):
             tuned = auto_tune_environment(name, persist=False)
             self.assertEqual(tuned["family"], expected)
 
+    def test_model_catalog_preconfigures_architecture_variants(self):
+        from core.model_manager import resolve_model_choice
+
+        for choice, expected in (("qwen2.5", ("qwen", "qwen2.5")), ("qwen3.5", ("qwen", "qwen3.5")),
+                                 ("gemma3", ("gemma", "gemma3")), ("gemma4", ("gemma", "gemma4")),
+                                 ("gpt-oss:20b", "gpt-oss")):
+            resolved = resolve_model_choice(choice)
+            if isinstance(expected, tuple):
+                self.assertEqual((resolved["family"], resolved["variant"]), expected)
+            else:
+                self.assertEqual(resolved["family"], expected)
+            self.assertTrue(resolved["repo_id"])
+
     def test_hud_snapshot_preserves_input_buffer(self):
         frame = render_hud_snapshot(input_buffer="claw typing test", last_response="Active")
         self.assertIn("claw typing test", frame)
