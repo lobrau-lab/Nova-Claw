@@ -5,6 +5,9 @@ from contextlib import redirect_stdout
 from unittest.mock import Mock, patch
 
 import nova
+from core.harness import auto_tune_environment, get_harness_profile
+from core.a2a_protocol import build_agent_card, format_user_to_agent_message, format_agent_to_user_response
+from core.hud import render_hud_snapshot
 
 
 class NovaCliTests(unittest.TestCase):
@@ -25,6 +28,33 @@ class NovaCliTests(unittest.TestCase):
             nova.main()
 
         store.delete_agent_task.assert_called_once_with("job-test")
+
+    def test_auto_tune_supports_gemma_qwen_deepseek_and_gpt_oss(self):
+        for name, expected in [
+            ("gemma-4-31b", "gemma"),
+            ("Qwen3.5-35B-A3B-4bit", "qwen"),
+            ("DeepSeek-R1-Distill-Qwen-32B", "deepseek"),
+            ("get-oss-20b", "gpt-oss"),
+            ("mlx-community/gpt-oss-20b-4bit", "gpt-oss"),
+        ]:
+            prof = get_harness_profile(name)
+            self.assertEqual(prof.family, expected)
+            tuned = auto_tune_environment(name, persist=False)
+            self.assertEqual(tuned["family"], expected)
+
+    def test_hud_snapshot_preserves_input_buffer(self):
+        frame = render_hud_snapshot(input_buffer="claw typing test", last_response="Active")
+        self.assertIn("claw typing test", frame)
+        self.assertIn("DEEPCLAW NOVA", frame)
+
+    def test_a2a_protocol_envelopes_follow_spec(self):
+        card = build_agent_card([{"function": {"name": "save_note", "description": "Save note"}}])
+        self.assertEqual(card["protocolVersion"], "0.2.5")
+        u2a = format_user_to_agent_message("Check status", context_memories=["mem1"])
+        self.assertEqual(u2a["role"], "user")
+        self.assertEqual(u2a["parts"][0]["type"], "text")
+        a2u = format_agent_to_user_response("job-1", "Done", job_status="COMPLETE")
+        self.assertEqual(a2u["status"]["state"], "completed")
 
 
 if __name__ == "__main__":
