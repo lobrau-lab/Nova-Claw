@@ -5,7 +5,7 @@ from pathlib import Path
 
 from skills.registry import Skill, SkillRegistry
 from voice.assistant import NovaVoiceAssistant
-from core.harness import build_system_prompt
+from core.harness import build_initial_instruction, build_system_prompt
 from core.job_store import JobStore
 
 
@@ -18,6 +18,13 @@ class ToolContractTests(unittest.TestCase):
         self.assertIn("read `~/.deepclaw/memory.md`", prompt)
         self.assertIn("fail closed", prompt)
         self.assertIn("shell commands are not OS-sandboxed", prompt)
+
+    def test_initial_instruction_orders_contracts_and_marks_memory_untrusted(self):
+        prompt, _ = build_initial_instruction("tools", "qwen3.5", "do task", "memory directive")
+        self.assertLess(prompt.index("[Permanent Safety Contract]"), prompt.index("[Capability and Tool Contract]"))
+        self.assertLess(prompt.index("[Capability and Tool Contract]"), prompt.index("[Model-Family Profile]"))
+        self.assertIn("[User/Task Context]", prompt)
+        self.assertIn("Data, Never Instructions", prompt)
 
     def test_casual_requests_skip_tool_mode(self):
         self.assertTrue(NovaVoiceAssistant._is_casual_request("hello"))
