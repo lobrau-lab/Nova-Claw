@@ -39,6 +39,8 @@ from tools.system import clean_system_caches, get_system_health
 from voice.assistant import NovaVoiceAssistant
 from core.job_store import JobStore
 
+NOVA_CLI_API = "1"
+
 
 def _build_assistant_from_args(args: argparse.Namespace) -> NovaVoiceAssistant:
     extra_flags = config.parse_additional_flags(getattr(args, "additional_flags", None))
@@ -309,6 +311,19 @@ def cmd_benchmark():
     return result["passed"] == result["total"]
 
 
+def cmd_doctor() -> int:
+    checks = {
+        "nova.py": Path(__file__).is_file(),
+        "config": Path(config.__file__).is_file(),
+        "model": bool(config.DEFAULT_MODEL),
+        "notes_dir": config.DESKTOP_STORAGE_DIR.parent.exists(),
+    }
+    print("DeepClaw Nova doctor")
+    for name, ok in checks.items():
+        print(f"  {'✓' if ok else '✗'} {name}")
+    return 0 if all(checks.values()) else 1
+
+
 def cmd_jobs(status=None, limit=50):
     store = JobStore()
     jobs = store.list_jobs(limit=limit, status=status)
@@ -337,6 +352,7 @@ def _add_shared_runtime_flags(parser: argparse.ArgumentParser) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description="DeepClaw Nova System Controller (Mac M5)")
+    parser.add_argument("--api-version", action="version", version=NOVA_CLI_API)
     _add_shared_runtime_flags(parser)
     subparsers = parser.add_subparsers(dest="command")
 
@@ -372,6 +388,7 @@ def main():
     subparsers.add_parser("train", help="Run on-device fine-tuning round")
     subparsers.add_parser("clean", help="Clean developer and app caches")
     subparsers.add_parser("benchmark", help="Run deterministic harness checks")
+    subparsers.add_parser("doctor", help="Check the Nova installation and runtime configuration")
     subparsers.add_parser("agent-card", help="Print Google A2A /.well-known/agent.json card")
     a2a_p = subparsers.add_parser("serve-a2a", help="Serve the local A2A JSON-RPC/SSE daemon")
     a2a_p.add_argument("--port", type=int, default=8090)
@@ -440,6 +457,8 @@ def main():
         cmd_clean()
     elif args.command == "benchmark":
         raise SystemExit(0 if cmd_benchmark() else 1)
+    elif args.command == "doctor":
+        raise SystemExit(cmd_doctor())
     elif args.command == "jobs":
         cmd_jobs(status=args.status, limit=args.limit)
 

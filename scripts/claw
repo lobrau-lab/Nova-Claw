@@ -1,0 +1,42 @@
+#!/bin/sh
+# Thin launcher: the repository's nova.py owns command parsing.
+set -eu
+
+NOVA_HOME="${DEEPCLAW_HOME:-/Users/tk/Desktop/deepclaw-nova}"
+if [ -n "${DEEPCLAW_PYTHON:-}" ]; then
+  PY="$DEEPCLAW_PYTHON"
+elif [ -x "$NOVA_HOME/venv/bin/python" ]; then
+  PY="$NOVA_HOME/venv/bin/python"
+elif [ -x "$NOVA_HOME/venv314/bin/python" ]; then
+  PY="$NOVA_HOME/venv314/bin/python"
+else
+  PY="$(command -v python3 2>/dev/null || true)"
+fi
+
+if [ -z "$PY" ]; then
+  echo "DeepClaw Nova: no usable Python interpreter found." >&2
+  exit 127
+fi
+
+if [ "$#" -eq 0 ]; then
+  exec "$PY" "$NOVA_HOME/nova.py" repl
+fi
+
+case "$1" in
+  memory)
+    shift
+    exec "$PY" "$NOVA_HOME/nova.py" ask "Use memory_search to find: $*" --no-voice
+    ;;
+  job)
+    shift
+    exec "$PY" "$NOVA_HOME/nova.py" jobs "$@"
+    ;;
+  repl|status|hud|clean|doctor|live|train|ask|benchmark|agent-card|serve-a2a|jobs|model|download-model|note|continue|discard-task|--help|-h|--api-version)
+    exec "$PY" "$NOVA_HOME/nova.py" "$@"
+    ;;
+  *)
+    echo "Unknown claw command: $1" >&2
+    echo "Use 'claw --help' or 'claw ask <prompt>'." >&2
+    exit 2
+    ;;
+esac
