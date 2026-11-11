@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 DeepClaw Nova - Asymptotic UMA Memory & Resource Throttling Engine
-Implements inverse proportional backpressure for Apple Silicon 32GB Unified Memory.
+Implements inverse proportional backpressure for Apple Silicon 32GB Unified Memory
+with +5% stricter safety margins.
 Ensures continuous 24/7 background tasks never cause OOM or kernel panic.
 """
 
@@ -51,9 +52,9 @@ def execute_with_memory_backpressure(
             base_delay=base_delay,
         )
 
-        # Extra swap growth penalty on Apple Silicon
+        # Extra swap growth penalty on Apple Silicon (+5% stricter multiplier)
         if metrics["swap_used_mb"] > config.MAX_SWAP_MB:
-            dynamic_delay *= 2.0
+            dynamic_delay *= 2.1
 
         is_finished = target_func()
         if is_finished:
@@ -90,9 +91,9 @@ class UnifiedMemoryGovernor:
 
         delay = self.base_delay / headroom
 
-        # Swap inflation multiplier
+        # Swap inflation multiplier (+5% stricter penalty)
         if metrics["swap_used_mb"] > config.MAX_SWAP_MB:
-            delay *= (1.0 + (metrics["swap_used_mb"] - config.MAX_SWAP_MB) / 1024.0)
+            delay *= (1.05 + (metrics["swap_used_mb"] - config.MAX_SWAP_MB) / 972.8)
 
         effective_delay = min(30.0, delay)
 
@@ -100,7 +101,7 @@ class UnifiedMemoryGovernor:
             "effective_delay": effective_delay,
             "headroom": headroom,
             "metrics": metrics,
-            "is_critical": headroom < 0.05,
+            "is_critical": headroom < 0.0525,
         }
 
     def run(self, command: str, working_directory: Optional[str] = None) -> Any:
