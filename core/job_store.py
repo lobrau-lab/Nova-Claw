@@ -21,7 +21,7 @@ DEFAULT_JOB_DB_PATH = Path(os.environ.get("NOVA_JOBS_DB", APP_DIR / "governor_jo
 
 VALID_STATES = {
     "QUEUED", "VALIDATING", "WAITING_RESOURCE", "RUNNING",
-    "VALIDATING_OUTPUT", "RECOVERING", "PAUSED", "COMPLETE", "FAILED", "BLOCKED",
+    "VALIDATING_OUTPUT", "RECOVERING", "PAUSED", "COMPLETE", "FAILED", "BLOCKED", "CANCELED",
 }
 
 
@@ -200,7 +200,7 @@ class JobStore:
         if st in {"RUNNING", "WAITING_RESOURCE", "VALIDATING"}:
             updates.append("started_at = CASE WHEN started_at = 0 THEN ? ELSE started_at END")
             params.append(now)
-        if st in {"COMPLETE", "FAILED", "BLOCKED"}:
+        if st in {"COMPLETE", "FAILED", "BLOCKED", "CANCELED"}:
             updates.append("ended_at = ?")
             params.append(now)
         if failure_class is not None:

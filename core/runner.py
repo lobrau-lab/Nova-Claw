@@ -20,7 +20,7 @@ from core.repair import select_repair_strategy
 from core.workspace import validate_workspace_path, WorkspaceViolationError
 from core.job_store import JobStore
 
-_MAX_CAPTURE_BYTES = 32 * 1024
+_MAX_CAPTURE_BYTES = int(32 * 1024 * getattr(config, "STRICTNESS_FACTOR", 0.95))
 
 
 def _start_output_capture(stream):
@@ -92,6 +92,7 @@ class ExecutionGovernor:
         resource_class: str = "general",
         timeout: float = config.DEFAULT_COMMAND_TIMEOUT_SECONDS,
         env: Optional[Dict[str, str]] = None,
+        cancel_event: Optional[threading.Event] = None,
     ) -> ExecutionResult:
         if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not 0 < timeout <= config.MAX_COMMAND_TIMEOUT_SECONDS:
             raise ValueError(f"timeout must be between 1 and {config.MAX_COMMAND_TIMEOUT_SECONDS} seconds.")
@@ -123,6 +124,9 @@ class ExecutionGovernor:
             merged_env.update(env)
 
         while True:
+            if cancel_event and cancel_event.is_set():
+                self.store.update_status(job_id, "CANCELED")
+                return ExecutionResult(job_id, "CANCELED", 130, "", "Command canceled.", duration=time.time() - start_time)
             # Acquire Resource Lease if heavy
             lease = None
             if resource_class in ("heavy", "metal", "training", "diffusion"):
@@ -167,8 +171,17 @@ class ExecutionGovernor:
                 deadline = time.monotonic() + timeout
                 timed_out = False
                 try:
-                    proc.wait(timeout=timeout)
-                    exit_code = proc.returncode
+                    while proc.poll() is None:
+                        if cancel_event and cancel_event.is_set():
+                            _kill_process_tree(proc)
+                            proc.wait()
+                            exit_code = 130
+                            break
+                        if time.monotonic() >= deadline:
+                            raise subprocess.TimeoutExpired(cmd_args, timeout)
+                        time.sleep(min(0.1, max(0.0, deadline - time.monotonic())))
+                    else:
+                        exit_code = proc.returncode
                 except subprocess.TimeoutExpired:
                     timed_out = True
                     _kill_process_tree(proc)
@@ -182,7 +195,10 @@ class ExecutionGovernor:
                     for thread in output_threads:
                         thread.join(timeout=1.0)
                     exit_code = 124
-                if timed_out:
+                canceled = bool(cancel_event and cancel_event.is_set() and exit_code == 130)
+                if canceled:
+                    stderr += "\nProcess canceled."
+                elif timed_out:
                     stderr += f"\nProcess timed out after {timeout} seconds."
                 stdout = _captured_text(stdout_capture)
                 stderr = _captured_text(stderr_capture) + stderr
@@ -204,6 +220,9 @@ class ExecutionGovernor:
                     lease.release()
 
             # Step 3: Validate Outcome
+            if cancel_event and cancel_event.is_set():
+                self.store.update_status(job_id, "CANCELED")
+                return ExecutionResult(job_id, "CANCELED", 130, stdout, stderr, duration=time.time() - start_time)
             if exit_code == 0:
                 self.store.update_status(job_id, "COMPLETE")
                 return ExecutionResult(
