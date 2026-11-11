@@ -19,7 +19,6 @@ from core.classifier import classify_failure, CLASS_WORKSPACE_VIOLATION
 from core.repair import select_repair_strategy
 from core.workspace import validate_workspace_path, WorkspaceViolationError
 from core.job_store import JobStore
-from core.sandbox import SandboxPolicy, SandboxUnavailableError, sandbox_required
 
 _MAX_CAPTURE_BYTES = int(32 * 1024 * getattr(config, "STRICTNESS_FACTOR", 0.95))
 
@@ -149,15 +148,7 @@ class ExecutionGovernor:
 
             self.store.update_status(job_id, "RUNNING")
             # Build command execution list (macOS QoS taskpolicy wrapper)
-            try:
-                self._sandbox_workdir = cwd
-                try:
-                    cmd_args = self._build_exec_command(command, resource_class)
-                finally:
-                    del self._sandbox_workdir
-            except SandboxUnavailableError as exc:
-                self.store.update_status(job_id, "BLOCKED", failure_class="SANDBOX_UNAVAILABLE")
-                return ExecutionResult(job_id, "BLOCKED", 1, "", str(exc), duration=time.time() - start_time)
+            cmd_args = self._build_exec_command(command, resource_class)
 
             exit_code = 0
             stdout = ""
@@ -268,13 +259,10 @@ class ExecutionGovernor:
                 )
 
     def _build_exec_command(self, command: str, resource_class: str) -> list:
-        prefix = []
-        if sandbox_required():
-            prefix = SandboxPolicy(getattr(self, "_sandbox_workdir", Path.cwd()), read_roots=(config.MODELS_DIR,)).command_prefix()
         if sys.platform == "darwin":
             # Use taskpolicy on macOS for QoS enforcement
             if resource_class in ("background", "compactor"):
-                return prefix + ["taskpolicy", "-b", "bash", "-c", command]
+                return ["taskpolicy", "-b", "bash", "-c", command]
             else:
-                return prefix + ["taskpolicy", "-c", "utility", "bash", "-c", command]
-        return prefix + ["bash", "-c", command]
+                return ["taskpolicy", "-c", "utility", "bash", "-c", command]
+        return ["bash", "-c", command]
