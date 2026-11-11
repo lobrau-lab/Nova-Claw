@@ -93,6 +93,11 @@ class SkillRegistry:
                 return f"Error: Tool '{skill.name}' argument '{key}' must be a string."
             if expected == "integer" and (isinstance(value, bool) or not isinstance(value, int)):
                 return f"Error: Tool '{skill.name}' argument '{key}' must be an integer."
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                if "minimum" in definition and value < definition["minimum"]:
+                    return f"Error: Tool '{skill.name}' argument '{key}' must be at least {definition['minimum']}."
+                if "maximum" in definition and value > definition["maximum"]:
+                    return f"Error: Tool '{skill.name}' argument '{key}' must be at most {definition['maximum']}."
             if expected == "object" and not isinstance(value, dict):
                 return f"Error: Tool '{skill.name}' argument '{key}' must be an object."
             allowed = definition.get("enum")

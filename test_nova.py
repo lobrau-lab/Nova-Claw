@@ -9,7 +9,9 @@ import os
 import time
 import json
 import shutil
+import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -21,6 +23,7 @@ from core.lease import ResourceLease
 from core.classifier import classify_failure, CLASS_WORKSPACE_VIOLATION, CLASS_COMMAND_NOT_FOUND
 from core.repair import select_repair_strategy
 from core.runner import ExecutionGovernor, WorkspaceViolationError
+from core.job_store import JobStore
 from memory.db import MemoryStore
 from skills.registry import SkillRegistry, Skill
 from skills.author import SkillAuthor
@@ -43,6 +46,11 @@ def run_test(name, fn):
         import traceback
         traceback.print_exc()
         return False
+
+
+def temporary_workspace():
+    return tempfile.TemporaryDirectory(dir=Path(__file__).parent)
+
 
 def test_telemetry_and_memory():
     metrics = get_system_metrics()
@@ -82,85 +90,98 @@ def test_deterministic_classifier():
     assert c2 == CLASS_WORKSPACE_VIOLATION
 
 def test_execution_governor_boundaries():
-    gov = ExecutionGovernor()
-    # Illegal path outside workspace roots
-    res = gov.run(command="echo hello", working_directory="/System/Library")
-    assert res.status == "BLOCKED"
-    assert res.failure_class == CLASS_WORKSPACE_VIOLATION
+    with temporary_workspace() as tmp:
+        root = Path(tmp)
+        with patch.object(config, "WORKSPACE_ROOTS", [root]):
+            gov = ExecutionGovernor(job_store=JobStore(root / "jobs.db"))
+            # Illegal path outside workspace roots
+            res = gov.run(command="echo hello", working_directory="/System/Library")
+            assert res.status == "BLOCKED"
+            assert res.failure_class == CLASS_WORKSPACE_VIOLATION
 
-    # Legal execution inside approved root
-    res_ok = gov.run(command="echo 'DeepClaw Nova Active'", working_directory=str(Path.home() / "workspace"))
-    assert res_ok.success()
-    assert "DeepClaw Nova Active" in res_ok.stdout
-    stored = gov.store.get_job(res_ok.job_id)
-    assert stored is not None and stored["status"] == "COMPLETE"
+            # Legal execution inside approved root
+            res_ok = gov.run(command="echo 'DeepClaw Nova Active'", working_directory=str(root))
+            assert res_ok.success()
+            assert "DeepClaw Nova Active" in res_ok.stdout
+            stored = gov.store.get_job(res_ok.job_id)
+            assert stored is not None and stored["status"] == "COMPLETE"
 
 def test_memory_retention_and_traces():
-    store = MemoryStore()
-    m_id = store.add_memory("User prefers dark mode and Python 3.12", category="preference", importance=8.0)
-    assert m_id > 0
+    with temporary_workspace() as tmp:
+        store = MemoryStore(Path(tmp) / "memory.db")
+        m_id = store.add_memory("User prefers dark mode and Python 3.12", category="preference", importance=8.0)
+        assert m_id > 0
 
-    results = store.search_memories("prefers dark mode")
-    assert len(results) > 0
-    assert "dark mode" in results[0]["content"]
+        results = store.search_memories("prefers dark mode")
+        assert len(results) > 0
+        assert "dark mode" in results[0]["content"]
 
-    t_id = store.record_trace(prompt="open safari", completion="Opened Safari", tool_name="computer_control", success=True)
-    assert t_id > 0
+        t_id = store.record_trace(prompt="open safari", completion="Opened Safari", tool_name="computer_control", success=True)
+        assert t_id > 0
 
 def test_autonomous_skill_creation():
-    reg = SkillRegistry()
-    author = SkillAuthor(registry=reg, allow_install=True)
+    with temporary_workspace() as tmp:
+        skills_dir = Path(tmp) / "skills"
+        skills_dir.mkdir()
+        with patch.object(config, "SKILLS_DIR", skills_dir):
+            reg = SkillRegistry(skills_dir=skills_dir)
+            author = SkillAuthor(registry=reg, store=MemoryStore(Path(tmp) / "memory.db"), allow_install=True)
 
-    res = author.generate_and_install_skill(
-        name="unit_converter",
-        description="Converts kilometers to miles",
-        parameters={
-            "type": "object",
-            "properties": {"km": {"type": "number"}},
-            "required": ["km"]
-        },
-        implementation_code="km_val = kwargs.get('km', 0)\nreturn f'{km_val} km = {km_val * 0.621371:.2f} miles'"
-    )
-    assert res["success"]
-    assert "unit_converter" in [d["function"]["name"] for d in reg.list_definitions()]
-    ans = reg.execute("unit_converter", {"km": 10})
-    assert "6.21 miles" in ans
+            res = author.generate_and_install_skill(
+                name="unit_converter",
+                description="Converts kilometers to miles",
+                parameters={
+                    "type": "object",
+                    "properties": {"km": {"type": "number"}},
+                    "required": ["km"]
+                },
+                implementation_code="km_val = kwargs.get('km', 0)\nreturn f'{km_val} km = {km_val * 0.621371:.2f} miles'"
+            )
+            assert res["success"]
+            assert "unit_converter" in [d["function"]["name"] for d in reg.list_definitions()]
+            ans = reg.execute("unit_converter", {"km": 10})
+            assert "6.21 miles" in ans
 
 def test_computer_controller_and_system():
     ctrl = ComputerController()
-    res = ctrl.set_system_volume(40)
-    assert "Volume set" in res or "Simulated" in res
+    with patch("control.macos_bridge.run_applescript", return_value=(True, "")):
+        res = ctrl.set_system_volume(40)
+        assert "Volume set" in res
 
-    notif = ctrl.show_notification("Nova Test", "System operational")
-    assert "Notification" in notif or "Simulated" in notif
+        notif = ctrl.show_notification("Nova Test", "System operational")
+        assert "Notification" in notif
 
     health = get_system_health()
     assert "unified_ram_used_mb" in health
     assert "disk_free_gb" in health
 
 def test_training_pipeline():
-    builder = DatasetBuilder()
-    tmp_data = config.TRAINING_DIR / "test_train.jsonl"
-    count = builder.export_chatml_jsonl(tmp_data)
-    assert count >= 0
-    if tmp_data.exists():
-        tmp_data.unlink()
+    with tempfile.TemporaryDirectory() as tmp:
+        builder = DatasetBuilder(store=MemoryStore(Path(tmp) / "memory.db"))
+        tmp_data = Path(tmp) / "training" / "test_train.jsonl"
+        count = builder.export_chatml_jsonl(tmp_data)
+        assert count >= 0
+        assert tmp_data.exists()
 
 def test_agent_coding_tools_and_parser():
     from voice.assistant import NovaVoiceAssistant
-    assistant = NovaVoiceAssistant()
-    # Nested JSON tool call extraction
-    nested = '{"tool": "create_new_skill", "arguments": {"name": "x", "parameters": {"type": "object"}}}'
-    calls = assistant.residency._extract_tool_calls(nested)
-    assert len(calls) == 1 and calls[0]["function"]["arguments"]["parameters"]["type"] == "object"
+    with temporary_workspace() as tmp:
+        root = Path(tmp)
+        with patch.object(config, "DB_PATH", root / "memory.db"), \
+                patch.object(config, "WORKSPACE_ROOTS", [root]), \
+                patch("core.job_store.DEFAULT_JOB_DB_PATH", root / "jobs.db"):
+            assistant = NovaVoiceAssistant()
+            # Nested JSON tool call extraction
+            nested = '{"tool": "create_new_skill", "arguments": {"name": "x", "parameters": {"type": "object"}}}'
+            calls = assistant.residency._extract_tool_calls(nested)
+            assert len(calls) == 1 and calls[0]["function"]["arguments"]["parameters"]["type"] == "object"
 
-    # Workspace file write, read, edit, grep
-    tmp_file = Path.home() / "workspace" / "nova_tool_test.txt"
-    assert "Wrote" in assistant.registry.execute("write_file", {"path": str(tmp_file), "content": "alpha\nbeta\n"})
-    assert "1: alpha" in assistant.registry.execute("read_file", {"path": str(tmp_file)})
-    assert "Updated" in assistant.registry.execute("edit_file", {"path": str(tmp_file), "old_string": "beta", "new_string": "gamma"})
-    assert "gamma" in assistant.registry.execute("grep_content", {"pattern": "gamma", "path": str(tmp_file)})
-    tmp_file.unlink(missing_ok=True)
+            # Workspace file write, read, edit, grep
+            tmp_file = root / "nova_tool_test.txt"
+            assert "Wrote" in assistant.registry.execute("write_file", {"path": str(tmp_file), "content": "alpha\nbeta\n"})
+            assert "1: alpha" in assistant.registry.execute("read_file", {"path": str(tmp_file)})
+            assert "Updated" in assistant.registry.execute("edit_file", {"path": str(tmp_file), "old_string": "beta", "new_string": "gamma"})
+            assert "gamma" in assistant.registry.execute("grep_content", {"pattern": "gamma", "path": str(tmp_file)})
 
 def test_harness_boundary_and_profiles():
     assert get_harness_profile("gemma-31b").family == "gemma"
@@ -170,23 +191,25 @@ def test_harness_boundary_and_profiles():
 
 def test_edit_failures_are_recoverable_and_safe():
     from voice.assistant import NovaVoiceAssistant
-    assistant = NovaVoiceAssistant()
-    outside = Path("/etc/hosts")
-    denied = assistant.registry.execute("read_file", {"path": str(outside)})
-    assert denied.startswith("Error executing tool 'read_file'")
-    target = Path.home() / "workspace" / "nova_edit_test.txt"
-    target.write_text("alpha\nbeta\n", encoding="utf-8")
-    try:
-        failed = assistant.registry.execute("edit_file", {
-            "path": str(target), "old_string": "missing", "new_string": "x"
-        })
-        assert "re-read the file" in failed
-        duplicate = assistant.registry.execute("edit_file", {
-            "path": str(target), "old_string": "a", "new_string": "x"
-        })
-        assert "not unique" in duplicate
-    finally:
-        target.unlink(missing_ok=True)
+    with temporary_workspace() as tmp:
+        root = Path(tmp)
+        with patch.object(config, "DB_PATH", root / "memory.db"), \
+                patch.object(config, "WORKSPACE_ROOTS", [root]), \
+                patch("core.job_store.DEFAULT_JOB_DB_PATH", root / "jobs.db"):
+            assistant = NovaVoiceAssistant()
+            outside = Path("/etc/hosts")
+            denied = assistant.registry.execute("read_file", {"path": str(outside)})
+            assert denied.startswith("Error executing tool 'read_file'")
+            target = root / "nova_edit_test.txt"
+            target.write_text("alpha\nbeta\n", encoding="utf-8")
+            failed = assistant.registry.execute("edit_file", {
+                "path": str(target), "old_string": "missing", "new_string": "x"
+            })
+            assert "re-read the file" in failed
+            duplicate = assistant.registry.execute("edit_file", {
+                "path": str(target), "old_string": "a", "new_string": "x"
+            })
+            assert "not unique" in duplicate
 
 if __name__ == "__main__":
     tests = [

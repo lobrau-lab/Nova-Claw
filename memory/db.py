@@ -74,13 +74,22 @@ CREATE TABLE IF NOT EXISTS harness_traces (
 CREATE INDEX IF NOT EXISTS idx_harness_trace_tool ON harness_traces(tool_name);
 """
 
+
+class _ClosingConnection(sqlite3.Connection):
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            return super().__exit__(exc_type, exc_value, traceback)
+        finally:
+            self.close()
+
+
 class MemoryStore:
     def __init__(self, db_path: Optional[Path] = None):
         self.db_path = db_path or config.DB_PATH
         self.init_db()
 
     def get_connection(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self.db_path), timeout=10.0)
+        conn = sqlite3.connect(str(self.db_path), timeout=10.0, factory=_ClosingConnection)
         try:
             conn.execute("PRAGMA journal_mode = WAL;")
             conn.execute("PRAGMA synchronous = NORMAL;")

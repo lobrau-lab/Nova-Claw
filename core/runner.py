@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
 DeepClaw Nova - Invariant-Driven Execution Governor
-Executes commands with workspace sandboxing, macOS taskpolicy QoS scheduling,
+Executes commands with workspace path validation, macOS taskpolicy QoS scheduling,
 atomic lease governance, and deterministic self-healing loops.
 """
 
 import os
+import signal
 import sys
+import threading
 import time
 import subprocess
 from pathlib import Path
@@ -17,6 +19,43 @@ from core.classifier import classify_failure, CLASS_WORKSPACE_VIOLATION
 from core.repair import select_repair_strategy
 from core.workspace import validate_workspace_path, WorkspaceViolationError
 from core.job_store import JobStore
+
+_MAX_CAPTURE_BYTES = 32 * 1024
+
+
+def _start_output_capture(stream):
+    capture = {"data": bytearray(), "truncated": False}
+
+    def drain():
+        while chunk := stream.read(8192):
+            capture["data"].extend(chunk)
+            if len(capture["data"]) > _MAX_CAPTURE_BYTES:
+                del capture["data"][:-_MAX_CAPTURE_BYTES]
+                capture["truncated"] = True
+
+    thread = threading.Thread(target=drain, daemon=True)
+    thread.start()
+    return capture, thread
+
+
+def _captured_text(capture):
+    text = bytes(capture["data"]).decode("utf-8", errors="replace")
+    if capture["truncated"]:
+        return f"{text}\n[output truncated; showing last {_MAX_CAPTURE_BYTES} bytes]"
+    return text
+
+
+def _kill_process_tree(proc):
+    if os.name == "posix":
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+            return
+        except ProcessLookupError:
+            pass
+        except OSError:
+            pass
+    proc.kill()
+
 
 class ExecutionResult:
     def __init__(
@@ -51,9 +90,11 @@ class ExecutionGovernor:
         command: str,
         working_directory: Optional[str] = None,
         resource_class: str = "general",
-        timeout: float = 120.0,
+        timeout: float = config.DEFAULT_COMMAND_TIMEOUT_SECONDS,
         env: Optional[Dict[str, str]] = None,
     ) -> ExecutionResult:
+        if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not 0 < timeout <= config.MAX_COMMAND_TIMEOUT_SECONDS:
+            raise ValueError(f"timeout must be between 1 and {config.MAX_COMMAND_TIMEOUT_SECONDS} seconds.")
         cwd = Path(working_directory or os.getcwd())
         start_time = time.time()
         created = self.store.create_job(command=command, resource_class=resource_class, working_directory=str(cwd))
@@ -87,7 +128,8 @@ class ExecutionGovernor:
             if resource_class in ("heavy", "metal", "training", "diffusion"):
                 lease = ResourceLease(resource_name="metal_compute", owner=f"nova-{job_id}", timeout=15.0)
                 try:
-                    lease.acquire(blocking=True)
+                    if not lease.acquire(blocking=True):
+                        raise ResourceLeaseError("Timed out waiting for the Metal resource lease.")
                 except ResourceLeaseError as rle:
                     self.store.update_status(job_id, "BLOCKED", failure_class="GPU_CONTENTION")
                     return ExecutionResult(
@@ -107,6 +149,8 @@ class ExecutionGovernor:
             exit_code = 0
             stdout = ""
             stderr = ""
+            proc = None
+            output_threads = []
             try:
                 proc = subprocess.Popen(
                     cmd_args,
@@ -114,19 +158,48 @@ class ExecutionGovernor:
                     env=merged_env,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
-                    text=True,
+                    start_new_session=(os.name == "posix"),
+                    bufsize=0,
                 )
-                stdout, stderr = proc.communicate(timeout=timeout)
-                exit_code = proc.returncode
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                stdout, stderr = proc.communicate()
-                exit_code = 124
-                stderr += f"\nProcess timed out after {timeout} seconds."
+                stdout_capture, stdout_thread = _start_output_capture(proc.stdout)
+                stderr_capture, stderr_thread = _start_output_capture(proc.stderr)
+                output_threads = [stdout_thread, stderr_thread]
+                deadline = time.monotonic() + timeout
+                timed_out = False
+                try:
+                    proc.wait(timeout=timeout)
+                    exit_code = proc.returncode
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                    _kill_process_tree(proc)
+                    proc.wait()
+                    exit_code = 124
+                for thread in output_threads:
+                    thread.join(timeout=max(0.0, deadline - time.monotonic()))
+                if any(thread.is_alive() for thread in output_threads):
+                    timed_out = True
+                    _kill_process_tree(proc)
+                    for thread in output_threads:
+                        thread.join(timeout=1.0)
+                    exit_code = 124
+                if timed_out:
+                    stderr += f"\nProcess timed out after {timeout} seconds."
+                stdout = _captured_text(stdout_capture)
+                stderr = _captured_text(stderr_capture) + stderr
             except Exception as e:
+                if proc is not None and proc.poll() is None:
+                    _kill_process_tree(proc)
+                    proc.wait()
+                for thread in output_threads:
+                    thread.join()
                 exit_code = 1
                 stderr = str(e)
             finally:
+                if proc is not None:
+                    if proc.stdout:
+                        proc.stdout.close()
+                    if proc.stderr:
+                        proc.stderr.close()
                 if lease:
                     lease.release()
 

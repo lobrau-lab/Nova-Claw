@@ -21,12 +21,20 @@ DEFAULT_JOB_DB_PATH = Path(os.environ.get("NOVA_JOBS_DB", APP_DIR / "governor_jo
 
 VALID_STATES = {
     "QUEUED", "VALIDATING", "WAITING_RESOURCE", "RUNNING",
-    "VALIDATING_OUTPUT", "RECOVERING", "COMPLETE", "FAILED", "BLOCKED",
+    "VALIDATING_OUTPUT", "RECOVERING", "PAUSED", "COMPLETE", "FAILED", "BLOCKED",
 }
 
 
 class InvalidStateError(ValueError):
     pass
+
+
+class _ClosingConnection(sqlite3.Connection):
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            return super().__exit__(exc_type, exc_value, traceback)
+        finally:
+            self.close()
 
 
 class JobStore:
@@ -36,7 +44,7 @@ class JobStore:
         self._init_db()
 
     def _get_conn(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self.db_path), timeout=30.0)
+        conn = sqlite3.connect(str(self.db_path), timeout=30.0, factory=_ClosingConnection)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL;")
         return conn
@@ -101,6 +109,78 @@ class JobStore:
                 log_file or f"/tmp/runctl_{jid}.log", meta_str,
             ))
         return self.get_job(jid)  # type: ignore
+
+    def create_agent_task(
+        self,
+        command: str,
+        working_directory: Optional[str] = None,
+        checkpoint: Optional[List[Dict[str, Any]]] = None,
+    ) -> str:
+        job = self.create_job(
+            command=command,
+            resource_class="agent_task",
+            working_directory=working_directory,
+            metadata={
+                "kind": "agent_task",
+                **({"agent_checkpoint": checkpoint} if checkpoint is not None else {}),
+            },
+        )
+        self.update_status(job["job_id"], "RUNNING")
+        return job["job_id"]
+
+    def save_agent_checkpoint(self, task_id: str, checkpoint: List[Dict[str, Any]]) -> None:
+        with self._get_conn() as conn:
+            row = conn.execute(
+                "SELECT metadata_json FROM jobs WHERE job_id = ? AND resource_class = 'agent_task'",
+                (task_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"Agent task '{task_id}' does not exist.")
+            try:
+                metadata = json.loads(row["metadata_json"] or "{}")
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"Agent task '{task_id}' metadata is invalid; checkpoint was not saved.") from exc
+            if not isinstance(metadata, dict):
+                raise ValueError(f"Agent task '{task_id}' metadata is invalid; checkpoint was not saved.")
+            metadata["agent_checkpoint"] = checkpoint
+            conn.execute(
+                "UPDATE jobs SET metadata_json = ? WHERE job_id = ?",
+                (json.dumps(metadata), task_id),
+            )
+
+    def get_agent_checkpoint(self, task_id: str) -> Optional[List[Dict[str, Any]]]:
+        job = self.get_job(task_id)
+        if not job or job["resource_class"] != "agent_task":
+            return None
+        return job["metadata"].get("agent_checkpoint")
+
+    def clear_agent_checkpoint(self, task_id: str) -> None:
+        with self._get_conn() as conn:
+            row = conn.execute(
+                "SELECT metadata_json FROM jobs WHERE job_id = ? AND resource_class = 'agent_task'",
+                (task_id,),
+            ).fetchone()
+            if row is None:
+                return
+            try:
+                metadata = json.loads(row["metadata_json"] or "{}")
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"Agent task '{task_id}' metadata is invalid; checkpoint was not cleared.") from exc
+            if not isinstance(metadata, dict):
+                raise ValueError(f"Agent task '{task_id}' metadata is invalid; checkpoint was not cleared.")
+            metadata.pop("agent_checkpoint", None)
+            conn.execute(
+                "UPDATE jobs SET metadata_json = ? WHERE job_id = ?",
+                (json.dumps(metadata), task_id),
+            )
+
+    def delete_agent_task(self, task_id: str) -> bool:
+        with self._get_conn() as conn:
+            cur = conn.execute(
+                "DELETE FROM jobs WHERE job_id = ? AND resource_class = 'agent_task' AND status NOT IN ('RUNNING', 'RECOVERING')",
+                (task_id,),
+            )
+            return cur.rowcount == 1
 
     def update_status(
         self,

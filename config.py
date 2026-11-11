@@ -25,6 +25,11 @@ WORKSPACE_ROOTS = [
     APP_DIR,
     Path("/tmp"),
 ]
+COMPACTOR_ROOTS = [
+    Path(p).expanduser().resolve()
+    for p in os.getenv("NOVA_COMPACTOR_ROOTS", "").split(os.pathsep)
+    if p.strip()
+]
 
 # Create standard workspaces
 for p in WORKSPACE_ROOTS:
@@ -77,6 +82,12 @@ CONTEXT_ROLLOVER_RATIO = float(os.getenv("NOVA_CONTEXT_ROLLOVER_RATIO", "0.90"))
 CONTEXT_ROLLOVER_FRACTION = float(os.getenv("NOVA_CONTEXT_ROLLOVER_FRACTION", "0.40"))
 MEMORY_COMPACTION_INTERVAL_SECONDS = int(os.getenv("NOVA_MEMORY_COMPACTION_INTERVAL", "3600"))
 MEMORY_COMPACTION_MAX_CHARS = int(os.getenv("NOVA_MEMORY_MAX_CHARS", "24000"))
+MAX_AGENT_STEPS = min(1000, max(1, int(os.getenv("NOVA_MAX_AGENT_STEPS", "100"))))
+MAX_COMMAND_TIMEOUT_SECONDS = 1800
+DEFAULT_COMMAND_TIMEOUT_SECONDS = min(
+    MAX_COMMAND_TIMEOUT_SECONDS,
+    max(1, int(os.getenv("NOVA_COMMAND_TIMEOUT_SECONDS", "120"))),
+)
 
 # KV prefix cache budget: a 31B model's cached prompt states are large, so cap
 # them by bytes (share of safe RAM) rather than trusting the slot count alone.

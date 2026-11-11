@@ -25,3 +25,24 @@ Out of scope: changing model weights, adding a new inference backend, public-ben
 - Existing local modifications are user work; edits will be limited to the harness path and tests.
 - Tool schemas are JSON-like rather than backed by a validation dependency, so validation will remain intentionally small and conservative.
 - The benchmark measures harness behavior, not raw model intelligence; held-out task evaluation remains a follow-up.
+
+## Follow-up Plan: Reliable Long-Running Nova
+
+The original Benchmaxxed Nova plan above is complete. This follow-up addresses the audit findings without changing model weights or adding runtime dependencies.
+
+### Completed slices
+
+1. **Execution lifecycle:** Fail closed on lease-acquisition failure; bound stdout/stderr capture; terminate the process group on timeout; do not retry timed-out commands.
+2. **Task continuity:** Persist active agent checkpoints in the job database, expose `claw continue <task-id>`, recover interrupted tool calls without blindly replaying them, and compact older tool context.
+3. **Privacy and test safety:** Disable background compaction scans by default, scope opt-in scans to configured roots, reject symlink escapes, isolate acceptance-test data, and mock computer-control side effects.
+4. **Operations:** Generate a per-user LaunchAgent using the active Python and checkout paths without loading it automatically.
+
+### Remaining work
+
+- **Shell isolation decision:** The current Python CLI has no verified, supported OS-level sandbox implementation. Keep the limitation explicit until a supported mechanism or user-approved runtime is selected.
+- **Completion evidence:** The deterministic harness benchmark now covers runner output bounds, task checkpoint persistence, interrupted calls, and opt-in scanning. Representative held-out coding tasks and an endurance test remain; unit tests do not establish eight-hour completion quality.
+
+### Verification
+
+- `python3 test_nova.py`
+- `python3 -m unittest -v test_embedded_backend.py test_omlx_backend.py test_tool_contracts.py test_computer_control.py test_memory_manager.py test_job_store.py test_execution_safety.py test_memory_compactor.py test_launchd.py test_nova_cli.py`

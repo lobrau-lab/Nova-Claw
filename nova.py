@@ -89,11 +89,23 @@ def cmd_ask(prompt: str, voice: bool = True):
         print(f"  \033[90m[{st.get('eval_count', 0)} gen tok @ {st['tokens_per_sec']} tok/s · KV cached {st.get('cached_tokens', 0)}/{st.get('prompt_tokens', 0)} · {st.get('duration_sec', 0)}s]\033[0m")
     print(f"\033[1;32mNova:\033[0m {ans}\n")
 
+def cmd_continue(task_id: str, voice: bool = True):
+    assistant = NovaVoiceAssistant()
+    ans = assistant.resume_task(task_id, voice_output=voice)
+    print(f"\033[1;32mNova:\033[0m {ans}\n")
+
+def cmd_discard_task(task_id: str):
+    if JobStore().delete_agent_task(task_id):
+        print(f"Discarded task {task_id} and its checkpoint.")
+    else:
+        print(f"Task {task_id} was not found or is still active.")
+
 def cmd_repl(voice: bool = False):
     assistant = NovaVoiceAssistant()
     print("\033[1;35m╭─────────────────────────────────────────────────────────────╮\033[0m")
     print("\033[1;35m│\033[0m  \033[1;37m🐺 CLAW / NOVA · Interactive Agent REPL (Apple M5 MLX)\033[0m     \033[1;35m│\033[0m")
-    print("\033[1;35m│\033[0m  Commands: \033[1;33m/clear\033[0m, \033[1;33m/status\033[0m, \033[1;33m/jobs\033[0m, \033[1;31m/exit\033[0m                     \033[1;35m│\033[0m")
+    print("\033[1;35m│\033[0m  Commands: /clear, /status, /jobs, /continue <id>         \033[1;35m│\033[0m")
+    print("\033[1;35m│\033[0m            /discard-task <id>, /exit                       \033[1;35m│\033[0m")
     print("\033[1;35m╰─────────────────────────────────────────────────────────────╯\033[0m")
     while True:
         try:
@@ -114,6 +126,14 @@ def cmd_repl(voice: bool = False):
             continue
         if line == "/jobs":
             cmd_jobs()
+            continue
+        if line.startswith("/continue "):
+            task_id = line.partition(" ")[2].strip()
+            ans = assistant.resume_task(task_id, voice_output=voice)
+            print(f"\033[1;32mNova:\033[0m {ans}")
+            continue
+        if line.startswith("/discard-task "):
+            cmd_discard_task(line.partition(" ")[2].strip())
             continue
         ans = assistant.process_command(line, voice_output=voice)
         st = assistant.last_stats
@@ -218,6 +238,11 @@ def main():
     ask_p = subparsers.add_parser("ask", help="Send a command or prompt")
     ask_p.add_argument("query", type=str, help="Text instruction for Nova")
     ask_p.add_argument("--no-voice", action="store_true", help="Disable voice speech output")
+    continue_p = subparsers.add_parser("continue", help="Resume a paused or interrupted agent task")
+    continue_p.add_argument("task_id", type=str, help="Task ID printed when Nova paused")
+    continue_p.add_argument("--no-voice", action="store_true", help="Disable voice speech output")
+    discard_p = subparsers.add_parser("discard-task", help="Delete a paused/completed task and its checkpoint")
+    discard_p.add_argument("task_id", type=str, help="Agent task ID")
 
     args = parser.parse_args()
     if args.command == "status" or not args.command:
@@ -226,6 +251,10 @@ def main():
         cmd_repl(voice=args.voice)
     elif args.command == "ask":
         cmd_ask(args.query, voice=not args.no_voice)
+    elif args.command == "continue":
+        cmd_continue(args.task_id, voice=not args.no_voice)
+    elif args.command == "discard-task":
+        cmd_discard_task(args.task_id)
     elif args.command == "live":
         cmd_live(mode=args.mode)
     elif args.command == "train":

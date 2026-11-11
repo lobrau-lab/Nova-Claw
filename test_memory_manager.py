@@ -1,4 +1,5 @@
 import tempfile
+import sqlite3
 import unittest
 from pathlib import Path
 
@@ -7,6 +8,16 @@ from memory.manager import MemoryManager
 
 
 class MemoryManagerTests(unittest.TestCase):
+    def test_memory_connections_close_when_context_exits(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = MemoryStore(Path(tmp) / "memory.db")
+            connection = store.get_connection()
+            with connection:
+                connection.execute("SELECT 1")
+
+            with self.assertRaises(sqlite3.ProgrammingError):
+                connection.execute("SELECT 1")
+
     def test_rollover_moves_oldest_fraction_to_markdown(self):
         with tempfile.TemporaryDirectory() as tmp:
             manager = MemoryManager(MemoryStore(Path(tmp) / "memory.db"), Path(tmp) / "memory.md")

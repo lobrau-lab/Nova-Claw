@@ -14,6 +14,7 @@ import config
 from memory.db import MemoryStore
 from core.throttling import UnifiedMemoryGovernor
 from core.residency import ModelResidencyManager
+from core.workspace import WorkspaceViolationError, validate_workspace_path
 
 def hash_file(path: Path) -> str:
     h = hashlib.sha256()
@@ -76,8 +77,12 @@ class ContinuousCompactor:
 
     def run_sweep(self) -> int:
         compacted = 0
-        for root_path in config.WORKSPACE_ROOTS:
-            if not root_path.exists() or root_path == Path("/tmp"):
+        for configured_root in config.COMPACTOR_ROOTS:
+            try:
+                root_path = validate_workspace_path(configured_root, operation="scan")
+            except WorkspaceViolationError:
+                continue
+            if not root_path.is_dir() or root_path == Path("/tmp").resolve():
                 continue
             for root, dirs, files in os.walk(root_path):
                 # Prune noisy directories
@@ -85,6 +90,11 @@ class ContinuousCompactor:
                 for fname in files:
                     if fname.endswith((".py", ".go", ".js", ".ts", ".md", ".json", ".txt", ".sh", ".toml", ".yaml")):
                         full_path = Path(root) / fname
+                        try:
+                            full_path = full_path.resolve()
+                            full_path.relative_to(root_path)
+                        except (OSError, ValueError):
+                            continue
                         try:
                             if self.compact_single_file(full_path):
                                 compacted += 1

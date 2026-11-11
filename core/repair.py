@@ -82,6 +82,13 @@ class SecurityBlockedRepair(RepairAction):
     def execute(self, context: Dict[str, Any]) -> bool:
         return False
 
+class NoRetryRepair(RepairAction):
+    def __init__(self, name: str, description: str):
+        super().__init__(name, description, can_retry=False)
+
+    def execute(self, context: Dict[str, Any]) -> bool:
+        return False
+
 class DefaultCooldownRepair(RepairAction):
     def __init__(self):
         super().__init__("TRANSIENT_COOLDOWN", "Pauses briefly before retrying operation.", can_retry=True)
@@ -104,5 +111,10 @@ def select_repair_strategy(failure_class: str, retry_count: int) -> RepairAction
         return SecurityBlockedRepair("Access outside designated workspace or permission denied.")
     elif failure_class == CLASS_COMMAND_NOT_FOUND:
         return SecurityBlockedRepair("Required binary or CLI tool not found on system PATH.")
+    elif failure_class == CLASS_TIMEOUT_EXPIRED:
+        return NoRetryRepair(
+            "TIMEOUT_NO_RETRY",
+            "A timed-out command may have made partial changes, so it is not retried automatically.",
+        )
     else:
         return DefaultCooldownRepair()
