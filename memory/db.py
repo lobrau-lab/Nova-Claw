@@ -99,6 +99,7 @@ class MemoryStore:
         return conn
 
     def init_db(self) -> None:
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         with self.get_connection() as conn:
             conn.executescript(SCHEMA)
 
