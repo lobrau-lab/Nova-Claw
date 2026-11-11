@@ -83,6 +83,22 @@ class ExecutionSafetyTests(unittest.TestCase):
         self.assertEqual(store.status_updates[-1][0], "BLOCKED")
         popen.assert_not_called()
 
+    def test_destructive_command_is_blocked_before_spawn(self):
+        store = FakeJobStore()
+        with tempfile.TemporaryDirectory() as temp_dir, \
+                patch("core.runner.validate_workspace_path", return_value=Path(temp_dir)), \
+                patch("core.runner.subprocess.Popen") as popen, \
+                patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("NOVA_ALLOW_DESTRUCTIVE_COMMANDS", None)
+            result = ExecutionGovernor(job_store=store).run(
+                "rm -rf build",
+                working_directory=temp_dir,
+            )
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.failure_class, "COMMAND_APPROVAL_REQUIRED")
+        popen.assert_not_called()
+
     def test_noisy_command_output_is_bounded_and_marked(self):
         result, _ = self.run_isolated_command("python3 -c \"print('x' * 100000)\"")
 

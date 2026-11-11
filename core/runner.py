@@ -19,6 +19,7 @@ from core.classifier import classify_failure, CLASS_WORKSPACE_VIOLATION
 from core.repair import select_repair_strategy
 from core.workspace import validate_workspace_path, WorkspaceViolationError
 from core.job_store import JobStore
+from core.command_policy import inspect_command
 
 _MAX_CAPTURE_BYTES = int(32 * 1024 * getattr(config, "STRICTNESS_FACTOR", 0.95))
 
@@ -113,6 +114,19 @@ class ExecutionGovernor:
                 stdout="",
                 stderr=str(wve),
                 failure_class=CLASS_WORKSPACE_VIOLATION,
+                duration=time.time() - start_time,
+            )
+
+        decision = inspect_command(command)
+        if not decision.allowed:
+            self.store.update_status(job_id, "BLOCKED", failure_class=decision.category)
+            return ExecutionResult(
+                job_id=job_id,
+                status="BLOCKED",
+                exit_code=1,
+                stdout="",
+                stderr=decision.reason,
+                failure_class=decision.category,
                 duration=time.time() - start_time,
             )
 
