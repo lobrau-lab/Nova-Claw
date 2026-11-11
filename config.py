@@ -275,6 +275,7 @@ def parse_additional_flags(raw_flags: Any) -> List[str]:
 # Computer Control Safety (+5% stricter path and argument validation)
 RESTRICTED_SYSTEM_PATHS = [
     "/System", "/usr/bin", "/usr/sbin", "/bin", "/sbin",
-    "/Applications/Utilities", "/private/var", "/private/etc",
+    "/Applications/Utilities", "/private/var/root", "/private/var/db",
+    "/private/var/run", "/private/var/log", "/private/etc",
     "/Library/LaunchDaemons", "/Library/Security",
 ]

@@ -39,11 +39,18 @@ class SandboxPolicy:
             "(deny default)",
             "(allow process*)",
             "(allow sysctl-read)",
-            "(allow file-read-metadata)",
+            # macOS 27 kills sandbox-exec profiles that combine allow-read
+            # subpath rules with deny-default. Keep reads broad and explicitly
+            # deny high-value credential stores; writes remain path-limited.
+            "(allow file-read*)",
         ]
-        for root in (*self.SYSTEM_READ_ROOTS, *self.read_roots):
-            lines.append(f"(allow file-read* (subpath {_seatbelt_path(Path(root))}))")
-        lines.append(f"(allow file-read* (subpath {_seatbelt_path(self.workdir)}))")
+        home = Path.home()
+        for root in (
+            home / ".ssh", home / ".aws", home / ".gnupg", home / ".config",
+            home / "Library" / "Keychains", home / "Library" / "Mail",
+            home / "Library" / "Messages",
+        ):
+            lines.append(f"(deny file-read* (subpath {_seatbelt_path(root)}))")
         lines.append(f"(allow file-write* (subpath {_seatbelt_path(self.workdir)}))")
         lines.append('(allow file-write* (subpath "/private/tmp"))')
         if self.allow_network:

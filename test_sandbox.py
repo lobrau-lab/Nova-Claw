@@ -10,7 +10,7 @@ class SandboxPolicyTests(unittest.TestCase):
         profile = SandboxPolicy(workdir="/tmp/nova-work").profile()
         self.assertIn("(deny default)", profile)
         self.assertNotIn("network-outbound", profile)
-        self.assertIn('/tmp/nova-work', profile)
+        self.assertIn('(deny file-read* (subpath', profile)
 
     def test_profile_allows_only_workdir_writes(self):
         profile = SandboxPolicy(workdir="/tmp/nova-work").profile()
