@@ -12,6 +12,7 @@ import time
 import json
 import re
 import threading
+import sys
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 import config
@@ -26,6 +27,7 @@ from core.a2a_protocol import (
     format_agent_to_user_response,
     build_a2a_jsonrpc_request,
 )
+from core.approval import ApprovalGate
 from memory.db import MemoryStore
 from memory.manager import MemoryManager
 from control.macos_bridge import ComputerController
@@ -52,9 +54,12 @@ class NovaVoiceAssistant:
         voice_clone_text: Optional[str] = None,
         additional_flags: Optional[List[str]] = None,
         allow_shell: bool = True,
+        allow_mac_control: bool = True,
     ):
         self.additional_flags = config.parse_additional_flags(additional_flags or config.ADDITIONAL_FLAGS)
         self.allow_shell = allow_shell
+        self.allow_mac_control = allow_mac_control
+        self.approval_gate = ApprovalGate(interactive=allow_mac_control and sys.stdin.isatty())
         self.residency = ModelResidencyManager(model_name=model_name)
         if config.AUTO_TUNE_ENABLED:
             self.auto_tune_state = auto_tune_environment(self.residency.model_name, persist=False)
@@ -321,7 +326,11 @@ class NovaVoiceAssistant:
             registry=self.registry,
             controller=self.controller,
             static_router=self.static_router,
+            approval=self._approve_mac_action,
         )
+
+    def _approve_mac_action(self, action: str, details: str = "") -> bool:
+        return self.allow_mac_control and self.approval_gate.approve(action, details)
 
     def _handle_terminal_command(
         self,
@@ -412,6 +421,8 @@ class NovaVoiceAssistant:
         return "\n".join(f"[{m['category']}] {m['content']}" for m in mems)
 
     def _handle_computer_control(self, action: str, target: str = "", value: int = 50) -> str:
+        if not self._approve_mac_action(action, target or str(value)):
+            return f"Error: macOS action '{action}' requires interactive approval."
         if action == "open_app":
             return self.controller.open_app(target)
         elif action == "quit_app":
@@ -580,15 +591,15 @@ class NovaVoiceAssistant:
                 if "open" in low:
                     match = re.search(r"open\s+([a-zA-Z0-9\s]+?)(?:\s+and\s+|\.|$)", user_text, re.I)
                     app = match.group(1).strip() if match else "Safari"
-                    ans = self.controller.open_app(app)
+                    ans = self._handle_computer_control("open_app", app)
                 elif "volume" in low:
                     match = re.search(r"(\d+)", user_text)
                     vol = int(match.group(1)) if match else 50
-                    ans = self.controller.set_system_volume(vol)
+                    ans = self._handle_computer_control("set_volume", value=vol)
                 elif "search" in low:
                     ans = execute_web_search(user_text)
                 elif "notification" in low or "banner" in low:
-                    ans = self.controller.show_notification("DeepClaw Nova", user_text)
+                    ans = self._handle_computer_control("notify", user_text)
                 else:
                     task_store.update_status(task_id, "PAUSED")
                     ans = (

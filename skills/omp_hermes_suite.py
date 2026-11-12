@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
 
 import config
 from core.workspace import validate_workspace_path
@@ -233,6 +233,7 @@ def register_omp_hermes_skills(
     registry: SkillRegistry,
     controller: Optional[ComputerController] = None,
     static_router: Optional[StaticDecisionRouter] = None,
+    approval: Optional[Callable[[str, str], bool]] = None,
 ) -> None:
     """Registers the full OMP + Hermes + Desktop Note + App Takeover + Static Helper tool suite."""
     ctrl = controller or ComputerController()
@@ -283,7 +284,9 @@ def register_omp_hermes_skills(
             "required": ["app_name"],
         },
         handler=lambda app_name, mode="takeover", command="", menu_bar_item="", menu_item="", endpoint_url="": (
-            ctrl.inspect_app_ui(app_name)
+            "Error: macOS app control requires interactive approval."
+            if approval and not approval(f"app_takeover:{mode}", f"{app_name} {command}")
+            else ctrl.inspect_app_ui(app_name)
             if mode == "inspect"
             else ctrl.connect_or_takeover_app(
                 app_name=app_name,

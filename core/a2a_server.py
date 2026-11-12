@@ -139,7 +139,7 @@ class A2AServer:
             assistant = self.assistant
             if assistant is None:
                 from voice.assistant import NovaVoiceAssistant
-                assistant = NovaVoiceAssistant(allow_shell=False)
+                assistant = NovaVoiceAssistant(allow_shell=False, allow_mac_control=False)
             try:
                 result = assistant.process_command(
                     text,
