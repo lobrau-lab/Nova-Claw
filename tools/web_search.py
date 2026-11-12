@@ -29,7 +29,7 @@ def execute_web_search(query: str, max_results: int = 5) -> str:
     # 1. Try DuckDuckGo Instant Answer API
     try:
         api_url = f"https://api.duckduckgo.com/?q={encoded}&format=json&no_html=1&skip_disambig=1"
-        req = urllib.request.Request(api_url, headers={"User-Agent": "DeepClaw-Nova/1.0"})
+        req = urllib.request.Request(api_url, headers={"User-Agent": "Nova-Claw/1.0"})
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode())
             results = []

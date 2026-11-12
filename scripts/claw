@@ -2,7 +2,11 @@
 # Thin launcher: the repository's nova.py owns command parsing.
 set -eu
 
-NOVA_HOME="${DEEPCLAW_HOME:-/Users/tk/Desktop/deepclaw-nova}"
+SCRIPT_PATH="$0"
+if [ -L "$SCRIPT_PATH" ]; then
+  SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+fi
+NOVA_HOME="${DEEPCLAW_HOME:-$(CDPATH= cd -- "$(dirname -- "$SCRIPT_PATH")/.." && pwd)}"
 if [ -n "${DEEPCLAW_PYTHON:-}" ]; then
   PY="$DEEPCLAW_PYTHON"
 elif [ -x "$NOVA_HOME/venv/bin/python" ]; then
