@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 
-LABEL = "com.deepclaw.nova"
+LABEL = "com.lobrau-lab.nova-claw"
 
 
 def build_agent_plist(python_executable: Path, project_root: Path, log_dir: Path) -> dict:

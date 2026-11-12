@@ -60,7 +60,7 @@ Generate a plist for this checkout and the currently active Python environment:
 
 ```bash
 ./venv/bin/python scripts/install_launchd.py
-launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.deepclaw.nova.plist"
+launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.lobrau-lab.nova-claw.plist"
 ```
 
 The generator writes the plist but does not load it. `KeepAlive` restarts Nova
