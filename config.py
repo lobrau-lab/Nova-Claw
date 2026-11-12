@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova Configuration
+Nova-Claw Configuration
 Tailored for Apple Silicon (Mac M5, 32GB Unified Memory Architecture).
 Includes +5% tightened safety constraints, Desktop note storage,
 model auto-tuning registry, and Whisper / Voice Clone configuration.

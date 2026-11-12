@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - System Maintenance & Hygiene Tool
+Nova-Claw - System Maintenance & Hygiene Tool
 Monitors Apple Silicon health, prunes bloated caches, and maintains system stability.
 """
 

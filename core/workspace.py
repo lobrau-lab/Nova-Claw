@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Workspace Boundary Guard
+Nova-Claw - Workspace Boundary Guard
 Ensures autonomous modifications stay inside approved writable roots.
 """
 

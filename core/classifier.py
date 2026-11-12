@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Deterministic Failure Classifier
+Nova-Claw - Deterministic Failure Classifier
 Regex-driven classification of runtime errors without LLM hallucinations.
 """
 

@@ -18,7 +18,7 @@ else
 fi
 
 if [ -z "$PY" ]; then
-  echo "DeepClaw Nova: no usable Python interpreter found." >&2
+  echo "Nova-Claw: no usable Python interpreter found." >&2
   exit 127
 fi
 

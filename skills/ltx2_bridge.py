@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Remote LTX-2 Audiovisual Generation Bridge
+Nova-Claw - Remote LTX-2 Audiovisual Generation Bridge
 Connects Nova (running locally on Mac) to an LTX-2 generation server (ComfyUI / REST)
 running on your desktop GPU rig for synchronized 4K video and audio generation.
 """

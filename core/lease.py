@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Atomic POSIX Resource Lease Engine
+Nova-Claw - Atomic POSIX Resource Lease Engine
 Guarantees exclusive resource ownership (Metal compute, camera, mic)
 using kernel-level fcntl.flock semantics. Automatically cleans up stale locks.
 """

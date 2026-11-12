@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - SQLite WAL Memory Retention Engine
+Nova-Claw - SQLite WAL Memory Retention Engine
 Persistent episodic, thematic, file compaction, and training trace registry.
 """
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Autonomous Self-Authoring Skill & Plugin Engine
+Nova-Claw - Autonomous Self-Authoring Skill & Plugin Engine
 Empowers Nova to create, test, and register new tools and capabilities dynamically.
 """
 

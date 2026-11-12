@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Google Agent2Agent (A2A) & ADK Communication Protocol
+Nova-Claw - Google Agent2Agent (A2A) & ADK Communication Protocol
 Implements Google Developer recommendations for:
 1. Agent-to-Agent (A2A) interoperability: AgentCard (/.well-known/agent.json),
    JSON-RPC 2.0 envelopes (message/send, tasks/send, tasks/get, tasks/cancel),
@@ -93,12 +93,12 @@ def build_agent_card(skills: Optional[List[Dict[str, Any]]] = None) -> Dict[str,
             "outputModes": ["text/plain", "application/json"],
         })
     return {
-        "name": "DeepClaw Nova",
+        "name": "Nova-Claw",
         "description": "Local Apple Silicon M5 Autonomous Coding, Voice & Computer-Control Agent",
         "url": "http://127.0.0.1:8000",
         "version": "2.1.0",
         "protocolVersion": "0.2.5",
-        "provider": {"organization": "DeepClaw Local", "url": "http://127.0.0.1"},
+        "provider": {"organization": "Nova-Claw Local", "url": "http://127.0.0.1"},
         "capabilities": {
             "streaming": True,
             "pushNotifications": False,

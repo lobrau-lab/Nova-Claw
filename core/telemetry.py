@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Hardware & Unified Memory Telemetry
+Nova-Claw - Hardware & Unified Memory Telemetry
 Platform-aware monitoring for Apple Silicon UMA (with POSIX fallbacks).
 """
 

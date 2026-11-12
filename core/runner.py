@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Invariant-Driven Execution Governor
+Nova-Claw - Invariant-Driven Execution Governor
 Executes commands with workspace path validation, macOS taskpolicy QoS scheduling,
 atomic lease governance, and deterministic self-healing loops.
 """

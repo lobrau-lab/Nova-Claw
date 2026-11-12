@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Continuous Knowledge Compactor & Thematic Synthesizer
+Nova-Claw - Continuous Knowledge Compactor & Thematic Synthesizer
 Monitors workspaces, digests documents, and synthesizes cross-file knowledge
 under strict asymptotic memory backpressure.
 """

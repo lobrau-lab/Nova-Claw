@@ -1,6 +1,6 @@
-# DeepClaw Nova Agent Environment
+# Nova-Claw Agent Environment
 
-DeepClaw Nova is a local, auto-tuned Apple Silicon (M5, 32GB Unified Memory) autonomous coding, voice, and computer-control harness.
+Nova-Claw is a local, auto-tuned Apple Silicon (M5, 32GB Unified Memory) autonomous coding, voice, and computer-control harness.
 
 ## Runtime & Auto-Tuning Profile
 
@@ -17,7 +17,7 @@ DeepClaw Nova is a local, auto-tuned Apple Silicon (M5, 32GB Unified Memory) aut
 
 ## Desktop Storage Rule for Notes & Saved Text (Mandatory)
 
-- **Always use the Desktop folder for notes and saved text:** Whenever creating notes, saving text snippets, writing summaries, or storing general artifacts without an explicit repository file target, DeepClaw Nova **must** create and use a dedicated folder on the user's Desktop (`~/Desktop/DeepClaw_Notes`, configurable via `NOVA_DESKTOP_STORAGE_DIR`) using the `save_note` tool or `write_file`.
+- **Always use the Desktop folder for notes and saved text:** Whenever creating notes, saving text snippets, writing summaries, or storing general artifacts without an explicit repository file target, Nova-Claw **must** create and use a dedicated folder on the user's Desktop (`~/Desktop/DeepClaw_Notes`, configurable via `NOVA_DESKTOP_STORAGE_DIR`) using the `save_note` tool or `write_file`.
 - Organize multi-file notes or project exports into named subfolders inside `~/Desktop/DeepClaw_Notes/<topic>/`.
 
 ## Static Decision Router & Built-in Helpers (Compute Saving)

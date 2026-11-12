@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Main Unified System Controller & Voice Agent CLI
+Nova-Claw - Main Unified System Controller & Voice Agent CLI
 Designed for Mac M5 (32GB Unified Memory Architecture).
 Supports:
 - Model Auto-Tuning, Selection & Downloading (Gemma, Qwen, DeepSeek, gpt-oss / get-oss)
@@ -73,7 +73,7 @@ def cmd_status():
     store = MemoryStore()
 
     print("\033[1;36m====================================================================\033[0m")
-    print("\033[1;37m 🐺 DEEPCLAW NOVA · APPLE SILICON M5 MISSION CONTROL\033[0m")
+    print("\033[1;37m 🐺 NOVA-CLAW · APPLE SILICON M5 MISSION CONTROL\033[0m")
     print("\033[1;36m====================================================================\033[0m")
     print(f"\033[1;33m[UNIFIED MEMORY & HARDWARE (32GB UMA · +5% STRICT GOVERNOR)]\033[0m")
     print(f"  • Host Unified RAM : {metrics['used_ram_mb']:.1f} MB used / {metrics['total_ram_mb']:.1f} MB total ({metrics['avail_ram_mb']:.1f} MB free)")
@@ -244,12 +244,12 @@ def cmd_live(mode=None, args: Optional[argparse.Namespace] = None):
     mode = mode or config.VOICE_MODE
     if mode not in ("hands-free", "push-to-talk"):
         raise ValueError("voice mode must be hands-free or push-to-talk")
-    print(f"\033[1;35mStarting DeepClaw Nova voice assistant ({mode})...\033[0m")
+    print(f"\033[1;35mStarting Nova-Claw voice assistant ({mode})...\033[0m")
     assistant = _build_assistant_from_args(args) if args else NovaVoiceAssistant()
     assistant.residency.start_residency_watchdog()
     compactor = ContinuousCompactor()
 
-    assistant.tts.speak("DeepClaw Nova online. I am listening.")
+    assistant.tts.speak("Nova-Claw online. I am listening.")
     if mode == "hands-free":
         print("Nova is active. Speak commands (wake words: " + ", ".join(config.WAKE_WORDS) + ") or press Ctrl+C to stop.")
     else:
@@ -318,7 +318,7 @@ def cmd_doctor() -> int:
         "model": bool(config.DEFAULT_MODEL),
         "notes_dir": config.DESKTOP_STORAGE_DIR.parent.exists(),
     }
-    print("DeepClaw Nova doctor")
+    print("Nova-Claw doctor")
     for name, ok in checks.items():
         print(f"  {'✓' if ok else '✗'} {name}")
     return 0 if all(checks.values()) else 1
@@ -351,7 +351,7 @@ def _add_shared_runtime_flags(parser: argparse.ArgumentParser) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="DeepClaw Nova System Controller (Mac M5)")
+    parser = argparse.ArgumentParser(description="Nova-Claw System Controller (Mac M5)")
     parser.add_argument("--api-version", action="version", version=NOVA_CLI_API)
     _add_shared_runtime_flags(parser)
     subparsers = parser.add_subparsers(dest="command")

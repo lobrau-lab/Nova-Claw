@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Dynamic Skill & Plugin Registry
+Nova-Claw - Dynamic Skill & Plugin Registry
 Allows hot-loading, listing, and dynamic execution of tools & autonomous plugins.
 """
 

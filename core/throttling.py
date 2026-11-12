@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Asymptotic UMA Memory & Resource Throttling Engine
+Nova-Claw - Asymptotic UMA Memory & Resource Throttling Engine
 Implements inverse proportional backpressure for Apple Silicon 32GB Unified Memory
 with +5% stricter safety margins.
 Ensures continuous 24/7 background tasks never cause OOM or kernel panic.

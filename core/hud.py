@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Interactive Mission Control HUD & Agentic Runner (claw hud)
+Nova-Claw - Interactive Mission Control HUD & Agentic Runner (claw hud)
 Restores and upgrades the historical `claw hud` dashboard for OpenCode-style
 agentic execution on Apple Silicon M5.
 Fixes the legacy Go `claw-cli/pkg/hud/hud.go` 1-second repaint bug that wiped
@@ -41,7 +41,7 @@ def render_hud_snapshot(
 
     lines = [
         f"\033[1;36m╔{'═' * width}╗\033[0m",
-        f"\033[1;36m║\033[0m \033[1;37m🐺 DEEPCLAW NOVA · INTERACTIVE HUD & AGENTIC RUNNER (M5 UMA)\033[0m".ljust(width + 19) + "\033[1;36m║\033[0m",
+        f"\033[1;36m║\033[0m \033[1;37m🐺 NOVA-CLAW · INTERACTIVE HUD & AGENTIC RUNNER (M5 UMA)\033[0m".ljust(width + 19) + "\033[1;36m║\033[0m",
         f"\033[1;36m╠{'═' * width}╣\033[0m",
         f"\033[1;36m║\033[0m  • UMA RAM    : [{bar}] {metrics['used_ram_mb']:.0f}/{metrics['total_ram_mb']:.0f} MB (Strict Cap: {config.MAX_SAFE_RAM_MB:.0f} MB)".ljust(width + 10) + "\033[1;36m║\033[0m",
         f"\033[1;36m║\033[0m  • Model      : {config.DEFAULT_MODEL[:48]} (Family: {profile.family.upper()} | Temp: {profile.temperature})".ljust(width + 10) + "\033[1;36m║\033[0m",
@@ -75,7 +75,7 @@ def run_hud(assistant=None, once: bool = False, voice: bool = False) -> str:
     active_jobs = len(agent.governor.store.get_active_jobs())
     snapshot = render_hud_snapshot(
         input_buffer="",
-        last_response="DeepClaw Nova HUD initialized. Persistent input bar active.",
+        last_response="Nova-Claw HUD initialized. Persistent input bar active.",
         tokens_saved=agent.static_router.tokens_saved_total,
         active_jobs_count=active_jobs,
     )
@@ -86,7 +86,7 @@ def run_hud(assistant=None, once: bool = False, voice: bool = False) -> str:
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     input_buf: List[str] = []
-    last_resp = "DeepClaw Nova HUD online. Type a prompt and press Enter, or /exit to quit."
+    last_resp = "Nova-Claw HUD online. Type a prompt and press Enter, or /exit to quit."
 
     try:
         tty.setcbreak(fd)

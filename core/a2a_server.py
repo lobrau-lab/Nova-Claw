@@ -245,7 +245,7 @@ class A2AServer:
 
 def serve_a2a(port: int = 8090) -> None:
     server = A2AServer(port=port)
-    print(f"DeepClaw A2A server listening on http://127.0.0.1:{port}")
+    print(f"Nova-Claw A2A server listening on http://127.0.0.1:{port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

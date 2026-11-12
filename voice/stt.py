@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Open-Source Whisper Speech Recognition (STT)
+Nova-Claw - Open-Source Whisper Speech Recognition (STT)
 Supports mlx-whisper, openai-whisper, faster-whisper, and whisper.cpp CLI
 with configurable models and --additional-flags pass-through.
 """

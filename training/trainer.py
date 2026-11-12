@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - On-Device Model Fine-Tuning & Adapter Training Engine
+Nova-Claw - On-Device Model Fine-Tuning & Adapter Training Engine
 Leverages Apple Silicon Metal / MLX (mlx-lm.lora) for local parameter-efficient training.
 Governed by ResourceLease and unified memory asymptotic backpressure.
 """

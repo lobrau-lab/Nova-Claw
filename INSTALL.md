@@ -1,4 +1,4 @@
-# DeepClaw Nova installation
+# Nova-Claw installation
 
 ## Embedded MLX runtime
 

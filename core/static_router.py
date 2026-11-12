@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Static Decision Router & Built-in Compute-Saving Helpers
+Nova-Claw - Static Decision Router & Built-in Compute-Saving Helpers
 Offloads deterministic rules, note saving, locked configurations, and quick
 system/model queries into zero-token Python if/elif/else branches before LLM inference.
 """
@@ -169,7 +169,7 @@ class StaticDecisionRouter:
             if norm.startswith(("thanks", "thank you")):
                 resp = "You're welcome!"
             elif norm in ("ping", "status ping"):
-                resp = "PONG — DeepClaw Nova static router active (0 LLM tokens used)."
+                resp = "PONG — Nova-Claw static router active (0 LLM tokens used)."
             else:
                 resp = "Hello! I'm ready to help."
             return self._record_hit(raw, resp, rule_id="casual_greeting")

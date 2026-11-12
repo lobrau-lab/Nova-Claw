@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Autonomous Web Search & Retrieval Tool
+Nova-Claw - Autonomous Web Search & Retrieval Tool
 Intelligently queries the internet for real-time information, documentation, and live data.
 """
 

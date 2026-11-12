@@ -58,7 +58,7 @@ class NovaCliTests(unittest.TestCase):
     def test_hud_snapshot_preserves_input_buffer(self):
         frame = render_hud_snapshot(input_buffer="claw typing test", last_response="Active")
         self.assertIn("claw typing test", frame)
-        self.assertIn("DEEPCLAW NOVA", frame)
+        self.assertIn("NOVA-CLAW", frame)
 
     def test_a2a_protocol_envelopes_follow_spec(self):
         card = build_agent_card([{"function": {"name": "save_note", "description": "Save note"}}])

@@ -226,7 +226,7 @@ class MemoryManager:
         if not summary:
             return False
         self.path.write_text(
-            "# DeepClaw Long-Term Memory\n\n"
+            "# Nova-Claw Long-Term Memory\n\n"
             f"_Compacted {time.strftime('%Y-%m-%d %H:%M:%S')}; source retained in SQLite traces._\n\n"
             f"{summary}\n",
             encoding="utf-8",

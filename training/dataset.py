@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Dataset Harvester & Preprocessor
+Nova-Claw - Dataset Harvester & Preprocessor
 Extracts successful execution traces, memories, and skills into fine-tuning datasets.
 """
 

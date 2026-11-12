@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Surgical Bounded Auto-Repair Engine
+Nova-Claw - Surgical Bounded Auto-Repair Engine
 Translates deterministic failure classes into automated restorative operations.
 """
 

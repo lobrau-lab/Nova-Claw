@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - 24/7 Live Voice Assistant & Multi-Modal Orchestrator
+Nova-Claw - 24/7 Live Voice Assistant & Multi-Modal Orchestrator
 Listens via open-source Whisper, reasons with auto-tuned MLX models,
 saves compute via StaticDecisionRouter helpers, operates/takes over macOS apps,
 saves notes to ~/Desktop/DeepClaw_Notes, follows Google A2A/ADK protocols,
@@ -438,7 +438,7 @@ class NovaVoiceAssistant:
         elif action == "type_text":
             return self.controller.type_text(target)
         elif action == "notify":
-            return self.controller.show_notification("DeepClaw Nova", target)
+            return self.controller.show_notification("Nova-Claw", target)
         elif action == "screenshot":
             return self.controller.take_screenshot()
         return f"Unknown action {action}"

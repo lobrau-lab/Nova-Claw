@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - OMP, Hermes, Desktop Bridge, Plugin & Application Takeover Skill Suite
+Nova-Claw - OMP, Hermes, Desktop Bridge, Plugin & Application Takeover Skill Suite
 Equips the resident model with the full set of OMP + Hermes tools, Desktop note helpers,
 Windows Desktop SSH bridge, Plugin Installer, Static Decision Router helpers, and Advisory Playbooks.
 """
@@ -161,7 +161,7 @@ def handle_manage_plugins(
     source_path: str = "",
     registry: Optional[SkillRegistry] = None,
 ) -> str:
-    """Installs, lists, or loads plugins and external skills into DeepClaw Nova."""
+    """Installs, lists, or loads plugins and external skills into Nova-Claw."""
     act = (action or "list").strip().lower()
     config.PLUGINS_DIR.mkdir(parents=True, exist_ok=True)
     config.SKILLS_DIR.mkdir(parents=True, exist_ok=True)
@@ -301,7 +301,7 @@ def register_omp_hermes_skills(
     # 3. Plugin Manager Tool
     registry.register(Skill(
         name="manage_plugins",
-        description="Lists or installs plugins and external skills into DeepClaw Nova.",
+        description="Lists or installs plugins and external skills into Nova-Claw.",
         parameters={
             "type": "object",
             "properties": {

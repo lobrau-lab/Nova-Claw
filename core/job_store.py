@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Job Store & Lifecycle State Machine
+Nova-Claw - Job Store & Lifecycle State Machine
 Persistent SQLite-backed registry tracking jobs and recovery states.
 """
 

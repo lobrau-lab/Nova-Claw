@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Local Neural Voice Synthesizer & Zero-Shot Voice Clone (TTS)
+Nova-Claw - Local Neural Voice Synthesizer & Zero-Shot Voice Clone (TTS)
 Supports open-source voice cloning models (mlx-audio / F5-TTS, chatterbox, XTTS-v2,
 CosyVoice, Piper) alongside native macOS `say` so vocal communication never loses capability.
 """

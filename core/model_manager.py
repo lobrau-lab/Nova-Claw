@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Model Manager, Auto-Tuner & Downloader
+Nova-Claw - Model Manager, Auto-Tuner & Downloader
 Provides model discovery, selection, environment auto-tuning, and CLI downloading
 for Gemma, Qwen, DeepSeek, and gpt-oss (get-oss).
 """

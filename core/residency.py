@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Native Apple Silicon MLX Model Residency Engine
+Nova-Claw - Native Apple Silicon MLX Model Residency Engine
 Loads and permanently pins MLX models (e.g. Qwen3-14B-4bit) in Unified Memory (Metal).
 Zero HTTP overhead, zero-copy unified memory weight sharing, zero eviction.
 """

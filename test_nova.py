@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Comprehensive Acceptance & Unit Test Suite
+Nova-Claw - Comprehensive Acceptance & Unit Test Suite
 Validates all 10 core invariants and capabilities on Apple Silicon architecture.
 """
 
@@ -100,9 +100,9 @@ def test_execution_governor_boundaries():
             assert res.failure_class == CLASS_WORKSPACE_VIOLATION
 
             # Legal execution inside approved root
-            res_ok = gov.run(command="echo 'DeepClaw Nova Active'", working_directory=str(root))
+            res_ok = gov.run(command="echo 'Nova-Claw Active'", working_directory=str(root))
             assert res_ok.success()
-            assert "DeepClaw Nova Active" in res_ok.stdout
+            assert "Nova-Claw Active" in res_ok.stdout
             stored = gov.store.get_job(res_ok.job_id)
             assert stored is not None and stored["status"] == "COMPLETE"
 
@@ -229,7 +229,7 @@ if __name__ == "__main__":
 
     all_ok = True
     print("\n=======================================================")
-    print(" 🐺 RUNNING DEEPCLAW NOVA TEST SUITE (APPLE SILICON M5)")
+    print(" 🐺 RUNNING NOVA-CLAW TEST SUITE (APPLE SILICON M5)")
     print("=======================================================")
     for name, fn in tests:
         if not run_test(name, fn):

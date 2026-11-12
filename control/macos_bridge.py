@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DeepClaw Nova - Full macOS Computer Control & Application Takeover Bridge
+Nova-Claw - Full macOS Computer Control & Application Takeover Bridge
 Gives Nova voice-directed and agentic control over macOS applications using
 AppleScript, JXA, System Events Accessibility inspection, menu/window automation,
 and local plugin/socket attachment.
